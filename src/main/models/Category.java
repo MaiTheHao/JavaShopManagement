@@ -1,6 +1,6 @@
-package models;
+package main.models;
 
-public class Category extends Entity{
+public class Category extends Entity {
 	private String description;
 
 	public Category(String name, String description) {
