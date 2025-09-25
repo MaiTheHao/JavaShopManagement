@@ -3,19 +3,19 @@ package main.models;
 public class User extends Entity {
 	protected String email;
 	protected String password;
-	protected int roled;
+	protected Role role;
 
 	public User(String email, String password, String name) {
-		this.email = email;
-		this.password = password;
-		this.name = name;
+		this.setEmail(email);
+		this.setPassword(password);
+		this.setName(name);
 	}
 
-	public User(String email, String password, int roled, String name) {
-		this.email = email;
-		this.password = password;
-		this.roled = roled;
-		this.name = name;
+	public User(String email, String password, Role role, String name) {
+		this.setEmail(email);
+		this.setPassword(password);
+		this.setRole(role);
+		this.setName(name);
 	}
 
 	public String getEmail() {
@@ -23,9 +23,7 @@ public class User extends Entity {
 	}
 
 	public void setEmail(String email) {
-		if (email == null || email.isEmpty()) {
-			throw new IllegalArgumentException("Email must be not empty");
-		}
+		if (email == null || email.isEmpty()) throw new IllegalArgumentException("Email must be not empty");
 		this.email = email;
 	}
 
@@ -34,21 +32,17 @@ public class User extends Entity {
 	}
 
 	public void setPassword(String password) {
-		if (password == null || password.isEmpty()) {
-			throw new IllegalArgumentException("Password must be not empty");
-		}
+		if (password == null || password.isEmpty()) throw new IllegalArgumentException("Password must be not empty");
 		this.password = password;
 	}
 
-	public int getRoled() {
-		return roled;
+	public Role getRole() {
+		return this.role;
 	}
 
-	public void setRoled(int roled) {
-		if (roled < 0) {
-			throw new IllegalArgumentException("Role must be > 0");
-		}
-		this.roled = roled;
+	public void setRole(Role role) {
+		if (role == null) throw new IllegalArgumentException("Role must be not empty");
+		this.role = role;
 	}
 
 }

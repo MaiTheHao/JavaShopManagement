@@ -7,9 +7,9 @@ public class Product extends Entity {
 	private String description;
 
 	public Product(String name, double price, int quantity) {
-		this.name = name;
-		this.price = price;
-		this.quantity = quantity;
+		this.setName(name);
+		this.setPrice(price);
+		this.setQuantity(quantity);
 	}
 
 	public double getPrice() {
@@ -17,9 +17,8 @@ public class Product extends Entity {
 	}
 
 	public void setPrice(double price) {
-		if (price < 0) {
-			throw new IllegalArgumentException("Price is must > 0");
-		}
+		if (price < 0) throw new IllegalArgumentException("Price must be greater than or equal to 0");
+		
 		this.price = price;
 	}
 
@@ -28,9 +27,7 @@ public class Product extends Entity {
 	}
 
 	public void setQuantity(int quantity) {
-		if (quantity < 0) {
-			throw new IllegalArgumentException("Quantity must be > 0");
-		}
+		if (quantity < 0) throw new IllegalArgumentException("Quantity must be greater than or equal to 0");
 		this.quantity = quantity;
 	}
 
@@ -39,9 +36,6 @@ public class Product extends Entity {
 	}
 
 	public void setCategoryId(int categoryId) {
-		if (categoryId < 0) {
-			throw new IllegalArgumentException("CategotyId must be > 0");
-		}
 		this.categoryId = categoryId;
 	}
 
@@ -54,22 +48,15 @@ public class Product extends Entity {
 	}
 
 	public void inceaseQuantity(int amount) {
-		if (amount > 0) {
-			quantity += amount;
-		}
+		if (amount > 0) quantity += amount;
 	}
 
 	public void decreaseQuantity(int amount) {
-		if (amount > 0) {
-			quantity -= amount;
-		} else {
-			if (quantity < 0) {
-				quantity = 0;
-			}
-		}
+		 if (amount <= 0) return;
+		 this.quantity = Math.max(0, this.quantity - amount);
 	}
 
 	public boolean isOutOfStock() {
-		return quantity == 0;
+		return quantity <= 0;
 	}
 }

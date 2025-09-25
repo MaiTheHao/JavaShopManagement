@@ -4,8 +4,8 @@ public class Category extends Entity {
 	private String description;
 
 	public Category(String name, String description) {
-		this.name = name;
-		this.description = description;
+		this.setName(name);
+		this.setDescription(description);
 	}
 
 	public String getDescription() {
