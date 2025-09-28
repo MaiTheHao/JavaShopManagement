@@ -10,11 +10,9 @@ public class Query<T> {
 	private int size;
 	private T[] result;
 
-	// Constructors
 	public Query() {
 	}
 
-	// Getters
 	public int getSize() {
 		return size;
 	}
@@ -23,7 +21,6 @@ public class Query<T> {
 		return Arrays.copyOf(this.result, this.size);
 	}
 
-	// Setters
 	public void setSize(int size) {
 		if (size < 0)
 			throw new IllegalArgumentException("Size must be greater than 0");
@@ -37,7 +34,6 @@ public class Query<T> {
 		setSize(data.length);
 	}
 
-	// Utils
 	public static <T> Query<T> of(T[] data) {
 		Query<T> query = new Query<>();
 		query.setResult(data);
@@ -88,6 +84,14 @@ public class Query<T> {
 				return result[i];
 		}
 		return null;
+	}
+
+	public int indexOf(Predicate<T> callback) {
+		for (int i = 0; i < this.size; i++) {
+			if (callback.test(this.result[i]))
+				return i;
+		}
+		return -1;
 	}
 
 	public Query<T> map(UnaryOperator<T> callback) {

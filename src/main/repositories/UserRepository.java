@@ -6,10 +6,13 @@ public class UserRepository extends Repository<User> {
 	private static UserRepository instance;
 
 	private UserRepository() {
+		this(DEFAULT_CAPACITY);
 	}
 
 	private UserRepository(int capacity) {
 		this.capacity = capacity;
+		this.datas = new User[capacity];
+		this.size = 0;
 	}
 
 	public static UserRepository getInstance() {

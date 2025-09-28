@@ -6,10 +6,13 @@ public class RoleRepository extends Repository<Role> {
 	private static RoleRepository instance;
 
 	private RoleRepository() {
+		this(DEFAULT_CAPACITY);
 	}
 
 	private RoleRepository(int capacity) {
 		this.capacity = capacity;
+		this.datas = new Role[capacity];
+		this.size = 0;
 	}
 
 	public static RoleRepository getInstance() {
@@ -25,5 +28,4 @@ public class RoleRepository extends Repository<Role> {
 		}
 		return instance;
 	}
-
 }

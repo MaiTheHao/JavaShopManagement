@@ -6,10 +6,13 @@ public class CategoryRepository extends Repository<Category> {
 	private static CategoryRepository instance;
 
 	private CategoryRepository() {
+		this(DEFAULT_CAPACITY);
 	}
 
 	private CategoryRepository(int capacity) {
 		this.capacity = capacity;
+		this.datas = new Category[capacity];
+		this.size = 0;
 	}
 
 	public static CategoryRepository getInstance() {

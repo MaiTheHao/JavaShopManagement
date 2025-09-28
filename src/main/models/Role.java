@@ -8,6 +8,10 @@ public class Role extends Entity {
 		this.setDescription(description);
 	}
 
+	public Role(String name) {
+		this(name, "");
+	}
+
 	public String getDescription() {
 		return description;
 	}

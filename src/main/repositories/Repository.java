@@ -2,19 +2,31 @@ package main.repositories;
 
 import main.lib.Query;
 import main.models.Entity;
+
+import java.util.Arrays;
+
 import main.enumerations.SortOrder;
 
 public abstract class Repository<T extends Entity> {
+	protected static final int DEFAULT_CAPACITY = 5;
 	protected T[] datas;
 	protected int size;
 	protected int capacity;
 
+	public int getSize() {
+		return size;
+	}
+
+	public int getCapacity() {
+		return capacity;
+	}
+
 	public void add(T data) {
-		if (size < capacity) {
-			datas[size++] = data;
-		} else {
-			throw new IllegalStateException("Repository is full");
+		if (isOutOfCapacity()) {
+			increaseCapacity();
 		}
+
+		datas[size++] = data;
 	}
 
 	public void update(T data) {
@@ -29,20 +41,23 @@ public abstract class Repository<T extends Entity> {
 	}
 
 	public void remove(int id) {
-		for (int i = 0; i < size; i++) {
-			if (this.datas[i] != null && this.datas[i].getId() == id) {
-				for (int j = i; j < size - 1; i++) {
-					datas[j] = datas[j + 1];
-				}
-				datas[size - 1] = null;
-				size--;
-				return;
-			}
+		int index = this.query().indexOf(e -> e.getId() == id);
+		if (index != -1) {
+			System.arraycopy(datas, index + 1, datas, index, size - index - 1);
+			datas[size - 1] = null;
+			size--;
 		}
 	}
 
+	public void clear() {
+		for (int i = 0; i < this.size; i++) {
+			datas[i] = null;
+		}
+		this.size = 0;
+	}
+
 	public Query<T> query() {
-		return Query.of(this.datas);
+		return Query.of(Arrays.copyOf(this.datas, this.size));
 
 	}
 
@@ -51,8 +66,7 @@ public abstract class Repository<T extends Entity> {
 	}
 
 	public T findById(int id) {
-		return null;
-
+		return this.query().find(e -> e.getId() == id);
 	}
 
 	public T findByName(String name) {
@@ -85,4 +99,24 @@ public abstract class Repository<T extends Entity> {
 		return this.exists(entity.getId());
 	}
 
+	public boolean idDuplicated(int id) {
+		return this.query().find(e -> e.getId() == id) != null;
+	}
+
+	public boolean isDuplicated(T data) {
+		if (data == null)
+			return false;
+
+		return this.idDuplicated(data.getId());
+	}
+
+	public boolean isOutOfCapacity() {
+		return this.size >= this.capacity;
+	}
+
+	protected void increaseCapacity() {
+		int newCapacity = Math.max(1, capacity * 2);
+		datas = Arrays.copyOf(datas, newCapacity);
+		capacity = newCapacity;
+	}
 }

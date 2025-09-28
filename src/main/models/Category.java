@@ -8,6 +8,10 @@ public class Category extends Entity {
 		this.setDescription(description);
 	}
 
+	public Category(String name) {
+		this(name, "");
+	}
+
 	public String getDescription() {
 		return description;
 	}
