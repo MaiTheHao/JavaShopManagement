@@ -25,12 +25,14 @@ public class Query<T> {
 
 	// Setters
 	public void setSize(int size) {
-		if (size < 0) throw new IllegalArgumentException("Size must be greater than 0");
+		if (size < 0)
+			throw new IllegalArgumentException("Size must be greater than 0");
 		this.size = size;
 	}
 
 	private void setResult(T[] data) {
-		if (data == null) throw new IllegalArgumentException("Data array cannot be null");
+		if (data == null)
+			throw new IllegalArgumentException("Data array cannot be null");
 		this.result = data;
 		setSize(data.length);
 	}
@@ -60,37 +62,44 @@ public class Query<T> {
 	}
 
 	public Query<T> skip(int n) {
-		if (n < 0) throw new IllegalArgumentException("Skip count must be non-negative");
-		if (n == 0) return Query.of(this.result);
-		if (n >= this.size) return Query.of(Arrays.copyOf(this.result, 0));
+		if (n < 0)
+			throw new IllegalArgumentException("Skip count must be non-negative");
+		if (n == 0)
+			return Query.of(this.result);
+		if (n >= this.size)
+			return Query.of(Arrays.copyOf(this.result, 0));
 		T[] result = Arrays.copyOfRange(this.result, n, this.size);
 		return Query.of(result);
 	}
 
 	public Query<T> limit(int n) {
-		if (n < 0) throw new IllegalArgumentException("Limit must be non-negative");
-		System.out.println("N: " + n + " Size: " + this.size);
-		if (n >= this.size) return Query.of(this.result);
+		if (n < 0)
+			throw new IllegalArgumentException("Limit must be non-negative");
+		if (n >= this.size)
+			return Query.of(this.result);
 		T[] result = Arrays.copyOfRange(this.result, 0, n);
 		return Query.of(result);
 	}
-	
+
 	public T find(Predicate<T> callback) {
 		T[] result = this.getResult();
 		for (int i = 0; i < this.size; i++) {
-			if (callback.test(this.result[i])) return result[i];
+			if (callback.test(this.result[i]))
+				return result[i];
 		}
 		return null;
 	}
-	
+
 	public Query<T> map(UnaryOperator<T> callback) {
 		T[] copied = this.getResult();
-		for(int i = 0; i < this.getSize(); i++) copied[i] = callback.apply(copied[i]);
+		for (int i = 0; i < this.getSize(); i++)
+			copied[i] = callback.apply(copied[i]);
 		return Query.of(copied);
 	}
-	
+
 	public void forEach(Consumer<T> callback) {
 		T[] copied = this.getResult();
-		for(int i = 0; i < this.getSize(); i++) callback.accept(copied[i]);
+		for (int i = 0; i < this.getSize(); i++)
+			callback.accept(copied[i]);
 	}
 }

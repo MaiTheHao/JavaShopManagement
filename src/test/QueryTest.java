@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 class QueryTest {
@@ -21,7 +23,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testOfAndGetResult() {
+	void shouldCreateQueryAndReturnCorrectSizeAndData() {
 		Integer[] data = { 1, 2, 3, 4, 5 };
 		Query<Integer> query = Query.of(data);
 		assertArrayEquals(data, query.getResult());
@@ -29,7 +31,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testFindWithPredicate() {
+	void shouldFilterElementsMatchingPredicate() {
 		String[] data = { "apple", "banana", "apricot", "cherry" };
 		Query<String> query = Query.of(data);
 		Predicate<String> startsWithA = s -> s.startsWith("a");
@@ -39,7 +41,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testSortWithComparator() {
+	void shouldSortElementsUsingComparator() {
 		Integer[] data = { 5, 3, 1, 4, 2 };
 		Query<Integer> query = Query.of(data);
 		Query<Integer> sorted = query.sort(Comparator.naturalOrder());
@@ -47,7 +49,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testSkipZeroAndAll() {
+	void shouldSkipZeroElementsAndAllElements() {
 		Integer[] data = { 10, 20, 30, 40 };
 		Query<Integer> query = Query.of(data);
 		assertArrayEquals(data, query.skip(0).getResult());
@@ -55,7 +57,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testSkipPartial() {
+	void shouldSkipSpecifiedNumberOfElements() {
 		Integer[] data = { 10, 20, 30, 40, 50 };
 		Query<Integer> query = Query.of(data);
 		assertArrayEquals(new Integer[] { 20, 30, 40, 50 }, query.skip(1).getResult());
@@ -63,22 +65,23 @@ class QueryTest {
 	}
 
 	@Test
-	void testLimitZeroAndAll() {
+	void shouldLimitToZeroElementsAndAllElements() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
 		assertArrayEquals(new Integer[] {}, query.limit(0).getResult());
 		assertArrayEquals(data, query.limit(3).getResult());
+		assertArrayEquals(data, query.limit(10).getResult());
 	}
 
 	@Test
-	void testLimitPartial() {
+	void shouldLimitToSpecifiedNumberOfElements() {
 		Integer[] data = { 1, 2, 3, 4, 5 };
 		Query<Integer> query = Query.of(data);
 		assertArrayEquals(new Integer[] { 1, 2 }, query.limit(2).getResult());
 	}
 
 	@Test
-	void testFindWithNoMatch() {
+	void shouldReturnEmptyResultWhenNoElementsMatch() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
 		Query<Integer> result = query.filter(x -> x > 10);
@@ -87,7 +90,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testSortWithCustomComparator() {
+	void shouldSortUsingCustomComparator() {
 		String[] data = { "b", "a", "c" };
 		Query<String> query = Query.of(data);
 		Query<String> sorted = query.sort((s1, s2) -> s2.compareTo(s1));
@@ -95,38 +98,46 @@ class QueryTest {
 	}
 
 	@Test
-	void testSkipNegativeThrows() {
+	void shouldThrowExceptionWhenSkippingNegativeElements() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
-		assertThrows(IllegalArgumentException.class, () -> query.skip(-1));
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.skip(-1));
+		assertEquals("Skip count must be non-negative", exception.getMessage());
 	}
 
 	@Test
-	void testLimitNegativeThrows() {
+	void shouldThrowExceptionWhenLimitIsNegative() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
-		assertThrows(IllegalArgumentException.class, () -> query.limit(-5));
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.limit(-5));
+		assertEquals("Limit must be non-negative", exception.getMessage());
 	}
 
 	@Test
-	void testSetSizeNegativeThrows() {
+	void shouldThrowExceptionWhenSetSizeIsNegative() {
 		Query<Integer> query = new Query<>();
-		assertThrows(IllegalArgumentException.class, () -> query.setSize(-1));
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.setSize(-1));
+		assertEquals("Size must be greater than 0", exception.getMessage());
 	}
 
 	@Test
-	void testSetResultNullThrows() {
+	void shouldThrowExceptionWhenSetResultIsNull() {
 		Query<Integer> query = new Query<>();
-		assertThrows(IllegalAccessException.class, () -> {
-			query.getClass().getDeclaredMethod("setResult", Object[].class)
-					.setAccessible(true);
-			query.getClass().getDeclaredMethod("setResult", Object[].class)
-					.invoke(query, (Object) null);
+		Exception exception = assertThrows(Exception.class, () -> {
+			try {
+				var method = query.getClass().getDeclaredMethod("setResult", Object[].class);
+				method.setAccessible(true);
+				method.invoke(query, (Object) null);
+			} catch (InvocationTargetException e) {
+				throw e.getCause();
+			}
 		});
+		assertTrue(exception instanceof IllegalArgumentException);
+		assertEquals("Data array cannot be null", exception.getMessage());
 	}
 
 	@Test
-	void testChainedOperations() {
+	void shouldChainMultipleOperationsCorrectly() {
 		Integer[] data = { 5, 2, 8, 1, 3, 7 };
 		Query<Integer> query = Query.of(data)
 				.filter(x -> x > 2)
@@ -138,17 +149,24 @@ class QueryTest {
 	}
 
 	@Test
-	void testMapAndForeachOperation() {
+	void shouldMapElementsUsingFunction() {
 		Integer[] data = { 1, 2, 3, 4, 5 };
 		Query<Integer> query = Query.of(data);
-		query = query.map((value) -> (value * 2));
-		query.forEach((value) -> {
-			System.out.println(value);
-		});
+		Query<Integer> mapped = query.map(value -> value * 2);
+		assertArrayEquals(new Integer[] { 2, 4, 6, 8, 10 }, mapped.getResult());
 	}
 
 	@Test
-	void testFindReturnsFirstMatch() {
+	void shouldExecuteForEachOnAllElements() {
+		Integer[] data = { 1, 2, 3, 4, 5 };
+		Query<Integer> query = Query.of(data);
+		AtomicInteger sum = new AtomicInteger(0);
+		query.forEach(sum::addAndGet);
+		assertEquals(15, sum.get());
+	}
+
+	@Test
+	void shouldFindFirstMatchingElement() {
 		String[] data = { "apple", "banana", "apricot", "cherry" };
 		Query<String> query = Query.of(data);
 		String found = query.find(s -> s.startsWith("a"));
@@ -156,7 +174,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testFindReturnsNullIfNoMatch() {
+	void shouldReturnNullWhenNoElementMatches() {
 		Integer[] data = { 1, 2, 3, 4 };
 		Query<Integer> query = Query.of(data);
 		Integer found = query.find(x -> x > 10);
@@ -164,7 +182,7 @@ class QueryTest {
 	}
 
 	@Test
-	void testFindWithMultipleMatchesReturnsFirst() {
+	void shouldReturnFirstElementWhenMultipleElementsMatch() {
 		Integer[] data = { 2, 4, 6, 8 };
 		Query<Integer> query = Query.of(data);
 		Integer found = query.find(x -> x % 2 == 0);
@@ -172,10 +190,54 @@ class QueryTest {
 	}
 
 	@Test
-	void testFindWithEmptyArrayReturnsNull() {
+	void shouldReturnNullWhenFindingInEmptyArray() {
 		Integer[] data = {};
 		Query<Integer> query = Query.of(data);
 		Integer found = query.find(x -> true);
 		assertNull(found);
+	}
+
+	@Test
+	void shouldHandleNullElementsInArray() {
+		String[] data = { "apple", null, "banana", null };
+		Query<String> query = Query.of(data);
+		assertEquals(4, query.getSize());
+		assertArrayEquals(data, query.getResult());
+	}
+
+	@Test
+	void shouldFilterNullElements() {
+		String[] data = { "apple", null, "banana", null };
+		Query<String> query = Query.of(data);
+		Query<String> filtered = query.filter(x -> x != null);
+		assertArrayEquals(new String[] { "apple", "banana" }, filtered.getResult());
+		assertEquals(2, filtered.getSize());
+	}
+
+	@Test
+	void shouldThrowExceptionWhenSkippingMoreThanSize() {
+		Integer[] data = { 1, 2, 3 };
+		Query<Integer> query = Query.of(data);
+		Query<Integer> result = query.skip(5);
+		assertArrayEquals(new Integer[] {}, result.getResult());
+		assertEquals(0, result.getSize());
+	}
+
+	@Test
+	void shouldCreateEmptyQueryFromEmptyArray() {
+		Integer[] data = {};
+		Query<Integer> query = Query.of(data);
+		assertEquals(0, query.getSize());
+		assertArrayEquals(new Integer[] {}, query.getResult());
+	}
+
+	@Test
+	void shouldMaintainImmutabilityOfOriginalArray() {
+		Integer[] data = { 1, 2, 3, 4, 5 };
+		Query<Integer> query = Query.of(data);
+		Query<Integer> mapped = query.map(x -> x * 10);
+
+		assertArrayEquals(new Integer[] { 1, 2, 3, 4, 5 }, query.getResult());
+		assertArrayEquals(new Integer[] { 10, 20, 30, 40, 50 }, mapped.getResult());
 	}
 }
