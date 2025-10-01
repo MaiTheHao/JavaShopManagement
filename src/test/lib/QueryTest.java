@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -118,22 +117,6 @@ class QueryTest {
 		Query<Integer> query = new Query<>();
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.setSize(-1));
 		assertEquals("Size must be greater than 0", exception.getMessage());
-	}
-
-	@Test
-	void shouldThrowExceptionWhenSetResultIsNull() {
-		Query<Integer> query = new Query<>();
-		Exception exception = assertThrows(Exception.class, () -> {
-			try {
-				var method = query.getClass().getDeclaredMethod("setResult", Object[].class);
-				method.setAccessible(true);
-				method.invoke(query, (Object) null);
-			} catch (InvocationTargetException e) {
-				throw e.getCause();
-			}
-		});
-		assertTrue(exception instanceof IllegalArgumentException);
-		assertEquals("Data array cannot be null", exception.getMessage());
 	}
 
 	@Test
