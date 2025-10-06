@@ -116,54 +116,20 @@ public class AuthService implements IAuthService {
     }
 
     @Override
-    public boolean hasRole(Long uid, Role[] roles) {
+    public boolean isAdmin(Long uid) {
         if (uid == null) {
             throw new BadRequestException("User ID cannot be null.");
-        }
-        if (roles == null || roles.length == 0) {
-            throw new BadRequestException("Roles cannot be null or empty.");
         }
         try {
             User user = userRepository.findById(uid);
             if (user == null) {
                 throw new NotFoundException("User not found.");
             }
-            for (Role role : roles) {
-                if (user.getRole() == role) {
-                    return true;
-                }
-            }
-            return false;
+            return user.getRole() == main.enumerations.Role.ADMIN;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            throw new AppException("Check role failed: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public boolean hasAllRoles(Long uid, Role[] roles) {
-        if (uid == null) {
-            throw new BadRequestException("User ID cannot be null.");
-        }
-        if (roles == null || roles.length == 0) {
-            throw new BadRequestException("Roles cannot be null or empty.");
-        }
-        try {
-            User user = userRepository.findById(uid);
-            if (user == null) {
-                throw new NotFoundException("User not found.");
-            }
-            for (Role role : roles) {
-                if (user.getRole() != role) {
-                    return false;
-                }
-            }
-            return true;
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new AppException("Check roles failed: " + e.getMessage());
+            throw new AppException("Check admin role failed: " + e.getMessage());
         }
     }
 }

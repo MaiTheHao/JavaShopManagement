@@ -1,26 +1,28 @@
 package main;
 
 import main.utils.GUI;
-import main.errors.AppException;
+import main.enumerations.Role;
 import main.models.Product;
+import main.models.User;
+import main.repositories.ProductRepository;
+import main.repositories.UserRepository;
 
 import java.util.Scanner;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 public class Main {
 	private static final GUI gui = GUI.getInstance();
 
-	public static void main(String[] args) {
-		Scanner scanner = new Scanner(System.in);
-		boolean running = true;
-
-		if (gui.getProductService().getList(1, 1).length == 0) {
+	static {
+		ProductRepository productRepo = ProductRepository.getInstance();
+		if (productRepo.query().count() == 0) {
 			String[] names = {
 					"Wireless Mouse", "Mechanical Keyboard", "Gaming Headset", "USB-C Hub", "Smartphone Stand",
 					"Men's T-Shirt", "Women's Hoodie", "Sneakers", "Leather Belt", "Baseball Cap",
 					"Coffee Maker", "Electric Kettle", "Air Fryer", "Vacuum Cleaner", "LED Desk Lamp",
 					"Fiction Novel", "Science Textbook", "Comic Book", "Notebook Journal", "Children's Storybook"
 			};
-
 			String[] descriptions = {
 					"Ergonomic wireless mouse with silent click.",
 					"RGB backlit mechanical keyboard for fast typing.",
@@ -43,18 +45,38 @@ public class Main {
 					"Hardcover notebook for journaling and sketches.",
 					"Illustrated storybook for early readers."
 			};
-
 			for (int i = 0; i < 20; i++) {
-				gui.getProductService().add(
-						new Product(
-								(long) (i + 1),
-								names[i],
-								15.0 + (i * 3.5),
-								10 + (i % 5) * 2,
-								1,
-								descriptions[i]));
+				productRepo.add(new Product(
+						(long) (i + 1),
+						names[i],
+						15.0 + (i * 3.5),
+						10 + (i % 5) * 2,
+						1,
+						descriptions[i]));
 			}
 		}
+
+		UserRepository userRepo = UserRepository.getInstance();
+		if (!userRepo.existsByEmail("admin@gmail.com")) {
+			userRepo.add(new User(
+					LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+					"admin@gmail.com",
+					"12345678",
+					"Admin",
+					Role.ADMIN));
+		}
+		if (!userRepo.existsByEmail("user@gmail.com")) {
+			userRepo.add(new User(
+					LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 1,
+					"user@gmail.com",
+					"12345678",
+					"User"));
+		}
+	}
+
+	public static void main(String[] args) {
+		Scanner scanner = new Scanner(System.in);
+		boolean running = true;
 
 		while (running) {
 			try {
@@ -72,7 +94,10 @@ public class Main {
 							if (gui.login(email, password)) {
 								System.out.println("Login successful!");
 							}
-
+							System.out.println(">> enter <<");
+							scanner.nextLine();
+							System.out.print("\033[H\033[2J");
+							System.out.flush();
 							break;
 						case "2":
 							System.out.print("Email: ");
@@ -83,16 +108,23 @@ public class Main {
 							String regCheckPassword = scanner.nextLine();
 							System.out.print("Name: ");
 							String regName = scanner.nextLine();
-							gui.getAuthService().register(regEmail, regPassword, regCheckPassword, regName);
+							main.services.AuthService.getInstance().register(regEmail, regPassword, regCheckPassword,
+									regName);
 							System.out.println("Register successful! Please login.");
-
+							System.out.println(">> enter <<");
+							scanner.nextLine();
+							System.out.print("\033[H\033[2J");
+							System.out.flush();
 							break;
 						case "0":
 							running = false;
 							break;
 						default:
 							System.out.println("Invalid option.");
-
+							System.out.println(">> enter <<");
+							scanner.nextLine();
+							System.out.print("\033[H\033[2J");
+							System.out.flush();
 					}
 				} else {
 					switch (input) {
@@ -103,24 +135,36 @@ public class Main {
 							gui.addProduct(scanner);
 							break;
 						case "3":
+							gui.deleteProduct(scanner);
+							break;
+						case "4":
+							gui.searchProductByName(scanner);
+							break;
+						case "5":
 							gui.logout();
 							System.out.println("Logged out.");
-
+							System.out.println(">> enter <<");
+							scanner.nextLine();
+							System.out.print("\033[H\033[2J");
+							System.out.flush();
 							break;
 						case "0":
 							running = false;
 							break;
 						default:
 							System.out.println("Invalid option.");
-
+							System.out.println(">> enter <<");
+							scanner.nextLine();
+							System.out.print("\033[H\033[2J");
+							System.out.flush();
 					}
 				}
-			} catch (AppException e) {
-				System.out.println(e);
-
 			} catch (Exception e) {
-				System.out.println("Unexpected error: " + e.getMessage());
-
+				System.out.println("Error: " + e.getMessage());
+				System.out.println(">> enter <<");
+				scanner.nextLine();
+				System.out.print("\033[H\033[2J");
+				System.out.flush();
 			}
 		}
 		System.out.println("Application closed.");

@@ -168,4 +168,8 @@ public class Query<T> {
 			throw InternalAppException.from(e);
 		}
 	}
+
+	public int count() {
+		return this.size;
+	}
 }

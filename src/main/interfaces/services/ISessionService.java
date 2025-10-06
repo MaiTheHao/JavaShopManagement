@@ -6,4 +6,6 @@ public interface ISessionService {
     void remove(Long userId);
 
     boolean isActive(Long userId);
+
+    long getRemainingSeconds(Long userId);
 }

@@ -56,7 +56,7 @@ public abstract class Repository<T extends Entity> {
 	}
 
 	public void remove(Long id) {
-		int index = this.query().indexOf(e -> e.getId() == id);
+		int index = this.query().indexOf(e -> e.getId().equals(id));
 		if (index == -1)
 			throw new NotFoundException("Entity with ID " + id + " not found.");
 

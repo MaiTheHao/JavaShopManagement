@@ -1,6 +1,5 @@
 package main.interfaces.services;
 
-import main.enumerations.Role;
 import main.models.User;
 
 public interface IAuthService {
@@ -12,7 +11,5 @@ public interface IAuthService {
 
 	public boolean validSession(Long uid);
 
-	public boolean hasRole(Long uid, Role[] roles);
-
-	public boolean hasAllRoles(Long uid, Role[] roles);
+	public boolean isAdmin(Long uid);
 }
