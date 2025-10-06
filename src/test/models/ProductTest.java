@@ -1,9 +1,10 @@
 package test.models;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import java.time.LocalDateTime;
+import main.errors.BadRequestException;
 import main.models.Product;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductTest {
@@ -12,142 +13,164 @@ class ProductTest {
 
     @BeforeEach
     void setUp() {
-        product = new Product("Milk", 10.5, 20);
+        product = new Product(1L, "Test Product", 10.5, 5, 2, "Sample description");
     }
 
     @Test
-    void constructorShouldSetFieldsCorrectly() {
-        assertEquals("Milk", product.getName());
+    void testProductConstructorAndGetters() {
+        assertEquals(1, product.getId());
+        assertEquals("Test Product", product.getName());
         assertEquals(10.5, product.getPrice());
-        assertEquals(20, product.getQuantity());
+        assertEquals(5, product.getQuantity());
+        assertEquals(2, product.getCategoryId());
+        assertEquals("Sample description", product.getDescription());
     }
 
     @Test
-    void setNameShouldSetName() {
-        product.setName("Bread");
-        assertEquals("Bread", product.getName());
+    void testSetPriceValid() {
+        product.setPrice(20.0);
+        assertEquals(20.0, product.getPrice());
     }
 
     @Test
-    void setNameShouldThrowOnNullOrEmpty() {
-        assertThrows(IllegalArgumentException.class, () -> product.setName(null));
-        assertThrows(IllegalArgumentException.class, () -> product.setName(""));
-        assertThrows(IllegalArgumentException.class, () -> product.setName("   "));
+    void testSetPriceInvalid() {
+        assertThrows(BadRequestException.class, () -> product.setPrice(-1.0));
     }
 
     @Test
-    void setPriceShouldThrowOnNegative() {
-        assertThrows(IllegalArgumentException.class, () -> product.setPrice(-1));
+    void testSetQuantityValid() {
+        product.setQuantity(10);
+        assertEquals(10, product.getQuantity());
     }
 
     @Test
-    void setPriceShouldAcceptZeroOrPositive() {
-        product.setPrice(0);
-        assertEquals(0, product.getPrice());
-        product.setPrice(5.5);
-        assertEquals(5.5, product.getPrice());
+    void testSetQuantityInvalidNull() {
+        assertThrows(BadRequestException.class, () -> product.setQuantity(null));
     }
 
     @Test
-    void setQuantityShouldThrowOnNegative() {
-        assertThrows(IllegalArgumentException.class, () -> product.setQuantity(-10));
+    void testSetQuantityInvalidNegative() {
+        assertThrows(BadRequestException.class, () -> product.setQuantity(-5));
     }
 
     @Test
-    void setQuantityShouldAcceptZeroOrPositive() {
-        product.setQuantity(0);
-        assertEquals(0, product.getQuantity());
-        product.setQuantity(100);
-        assertEquals(100, product.getQuantity());
+    void testIncreaseQuantityPositiveAmount() {
+        product.inceaseQuantity(3);
+        assertEquals(8, product.getQuantity());
     }
 
     @Test
-    void setCategoryIdShouldSetCategoryId() {
-        product.setCategoryId(5);
-        assertEquals(5, product.getCategoryId());
-    }
-
-    @Test
-    void setDescriptionShouldSetDescription() {
-        product.setDescription("Fresh milk");
-        assertEquals("Fresh milk", product.getDescription());
-    }
-
-    @Test
-    void increaseQuantityShouldIncrease() {
-        product.inceaseQuantity(10);
-        assertEquals(30, product.getQuantity());
-    }
-
-    @Test
-    void increaseQuantityShouldNotChangeIfNonPositive() {
+    void testIncreaseQuantityZeroOrNegativeAmount() {
         product.inceaseQuantity(0);
-        assertEquals(20, product.getQuantity());
-        product.inceaseQuantity(-5);
-        assertEquals(20, product.getQuantity());
+        assertEquals(5, product.getQuantity());
+        product.inceaseQuantity(-2);
+        assertEquals(5, product.getQuantity());
     }
 
     @Test
-    void decreaseQuantityShouldDecrease() {
-        product.decreaseQuantity(5);
-        assertEquals(15, product.getQuantity());
+    void testDecreaseQuantityPositiveAmount() {
+        product.decreaseQuantity(2);
+        assertEquals(3, product.getQuantity());
     }
 
     @Test
-    void decreaseQuantityShouldNotGoBelowZero() {
-        product.decreaseQuantity(100);
+    void testDecreaseQuantityZeroOrNegativeAmount() {
+        product.decreaseQuantity(0);
+        assertEquals(5, product.getQuantity());
+        product.decreaseQuantity(-1);
+        assertEquals(5, product.getQuantity());
+    }
+
+    @Test
+    void testDecreaseQuantityToZero() {
+        product.decreaseQuantity(10);
         assertEquals(0, product.getQuantity());
     }
 
     @Test
-    void decreaseQuantityShouldNotChangeIfNonPositive() {
-        product.decreaseQuantity(0);
-        assertEquals(20, product.getQuantity());
-        product.decreaseQuantity(-3);
-        assertEquals(20, product.getQuantity());
-    }
-
-    @Test
-    void isOutOfStockShouldReturnTrueIfZero() {
+    void testIsOutOfStockTrue() {
         product.setQuantity(0);
         assertTrue(product.isOutOfStock());
     }
 
     @Test
-    void isOutOfStockShouldReturnFalseIfPositive() {
-        product.setQuantity(5);
+    void testIsOutOfStockFalse() {
+        product.setQuantity(1);
         assertFalse(product.isOutOfStock());
     }
 
     @Test
-    void setIdShouldSetId() {
-        product.setId(123);
-        assertEquals(123, product.getId());
+    void testSetCategoryId() {
+        product.setCategoryId(5);
+        assertEquals(5, product.getCategoryId());
     }
 
     @Test
-    void setCreatedAtShouldThrowOnNullOrFuture() {
-        assertThrows(IllegalArgumentException.class, () -> product.setCreatedAt(null));
-        assertThrows(IllegalArgumentException.class, () -> product.setCreatedAt(LocalDateTime.now().plusDays(1)));
+    void testSetDescription() {
+        product.setDescription("New description");
+        assertEquals("New description", product.getDescription());
     }
 
     @Test
-    void setCreatedAtShouldAcceptValidDate() {
+    void testSetIdValid() {
+        product.setId(100L);
+        assertEquals(100, product.getId());
+    }
+
+    @Test
+    void testSetIdInvalidNull() {
+        assertThrows(BadRequestException.class, () -> product.setId(null));
+    }
+
+    @Test
+    void testSetNameValid() {
+        product.setName("New Name");
+        assertEquals("New Name", product.getName());
+    }
+
+    @Test
+    void testSetNameInvalidNull() {
+        assertThrows(BadRequestException.class, () -> product.setName(null));
+    }
+
+    @Test
+    void testSetNameInvalidEmpty() {
+        assertThrows(BadRequestException.class, () -> product.setName("   "));
+    }
+
+    @Test
+    void testSetCreatedAtValid() {
         LocalDateTime now = LocalDateTime.now();
-        product.setCreatedAt(now);
-        assertEquals(now, product.getCreatedAt());
+        product.setCreatedAt(now.minusDays(1));
+        assertEquals(now.minusDays(1), product.getCreatedAt());
     }
 
     @Test
-    void setUpdatedAtShouldThrowOnNullOrFuture() {
-        assertThrows(IllegalArgumentException.class, () -> product.setUpdatedAt(null));
-        assertThrows(IllegalArgumentException.class, () -> product.setUpdatedAt(LocalDateTime.now().plusDays(1)));
+    void testSetCreatedAtNull() {
+        assertThrows(BadRequestException.class, () -> product.setCreatedAt(null));
     }
 
     @Test
-    void setUpdatedAtShouldAcceptValidDate() {
+    void testSetCreatedAtFuture() {
+        LocalDateTime future = LocalDateTime.now().plusDays(1);
+        assertThrows(BadRequestException.class, () -> product.setCreatedAt(future));
+    }
+
+    @Test
+    void testSetUpdatedAtValid() {
         LocalDateTime now = LocalDateTime.now();
-        product.setUpdatedAt(now);
-        assertEquals(now, product.getUpdateAt());
+        product.setUpdatedAt(now.minusHours(1));
+        assertEquals(now.minusHours(1), product.getUpdateAt());
+    }
+
+    @Test
+    void testSetUpdatedAtNull() {
+        assertThrows(BadRequestException.class, () -> product.setUpdatedAt(null));
+    }
+
+    @Test
+    void testSetUpdatedAtFuture() {
+        LocalDateTime future = LocalDateTime.now().plusHours(1);
+        assertThrows(BadRequestException.class, () -> product.setUpdatedAt(future));
     }
 }

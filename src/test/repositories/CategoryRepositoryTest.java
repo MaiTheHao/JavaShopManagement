@@ -1,221 +1,343 @@
 package test.repositories;
 
-import static org.junit.jupiter.api.Assertions.*;
-import main.models.Category;
-import main.repositories.CategoryRepository;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import static org.junit.jupiter.api.Assertions.*;
+
+import main.repositories.CategoryRepository;
+import main.models.Category;
+import main.enumerations.SortOrder;
+import main.errors.BadRequestException;
+import main.errors.NotFoundException;
+import main.utils.Query;
+
 import java.time.LocalDateTime;
+import java.lang.reflect.Field;
 
-class CategoryRepositoryTest {
+public class CategoryRepositoryTest {
 
-    private CategoryRepository categoryRepository;
+    private CategoryRepository repository;
+    private Category category1;
+    private Category category2;
+    private Category category3;
 
     @BeforeEach
-    void setUp() {
-        categoryRepository = CategoryRepository.getInstance();
-        categoryRepository.clear();
-    }
+    void setUp() throws Exception {
+        Field instanceField = CategoryRepository.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
 
-    @AfterEach
-    void tearDown() {
-        categoryRepository = null;
-    }
+        repository = CategoryRepository.getInstance();
+        repository.clear();
 
-    @Test
-    void shouldReturnSingletonInstance() {
-        CategoryRepository repo1 = CategoryRepository.getInstance();
-        CategoryRepository repo2 = CategoryRepository.getInstance();
-        assertSame(repo1, repo2);
-    }
+        category1 = new Category(1L, "Electronics", "Electronic devices and gadgets");
+        category1.setCreatedAt(LocalDateTime.now().minusDays(3));
 
-    @Test
-    void shouldReturnSingletonInstanceWithCapacity() {
-        CategoryRepository repo1 = CategoryRepository.getInstance(100);
-        CategoryRepository repo2 = CategoryRepository.getInstance(200);
-        assertSame(repo1, repo2);
+        category2 = new Category(2L, "Books", "Books and literature");
+        category2.setCreatedAt(LocalDateTime.now().minusDays(2));
+
+        category3 = new Category(3L, "Clothing", "Apparel and accessories");
+        category3.setCreatedAt(LocalDateTime.now().minusDays(1));
     }
 
     @Test
-    void shouldAddCategorySuccessfully() {
-        Category category = new Category("Electronics");
-        category.setId(1);
+    @DisplayName("Should return same instance (Singleton pattern)")
+    void testSingletonPattern() {
+        CategoryRepository instance1 = CategoryRepository.getInstance();
+        CategoryRepository instance2 = CategoryRepository.getInstance();
 
-        categoryRepository.add(category);
-
-        assertEquals(1, categoryRepository.getSize());
-        assertEquals(category, categoryRepository.findById(1));
+        assertSame(instance1, instance2, "Should return the same instance");
     }
 
     @Test
-    void shouldUpdateCategorySuccessfully() {
-        Category category = new Category("Electronics");
-        category.setId(1);
-        categoryRepository.add(category);
+    @DisplayName("Should create instance with custom capacity")
+    void testSingletonWithCapacity() throws Exception {
+        Field instanceField = CategoryRepository.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        instanceField.set(null, null);
 
-        Category updatedCategory = new Category("Updated Electronics");
-        updatedCategory.setId(1);
-
-        categoryRepository.update(updatedCategory);
-
-        assertEquals("Updated Electronics", categoryRepository.findById(1).getName());
+        CategoryRepository customRepository = CategoryRepository.getInstance(10);
+        assertEquals(10, customRepository.getCapacity(), "Should have custom capacity");
     }
 
     @Test
-    void shouldRemoveCategorySuccessfully() {
-        Category category1 = new Category("Electronics");
-        category1.setId(1);
-        Category category2 = new Category("Books");
-        category2.setId(2);
+    @DisplayName("Should add category successfully")
+    void testAddCategory() {
+        repository.add(category1);
 
-        categoryRepository.add(category1);
-        categoryRepository.add(category2);
-
-        categoryRepository.remove(1);
-
-        assertEquals(1, categoryRepository.getSize());
-        assertNull(categoryRepository.findById(1));
-        assertNotNull(categoryRepository.findById(2));
+        assertEquals(1, repository.getSize(), "Size should be 1");
+        assertEquals(category1, repository.findById(1L), "Should find added category");
     }
 
     @Test
-    void shouldFindCategoryById() {
-        Category category = new Category("Sports");
-        category.setId(10);
-        categoryRepository.add(category);
-
-        Category found = categoryRepository.findById(10);
-        assertEquals(category, found);
+    @DisplayName("Should throw exception when adding null category")
+    void testAddNullCategory() {
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> repository.add(null));
+        assertEquals("Data to add cannot be null.", exception.getMessage());
     }
 
     @Test
-    void shouldReturnNullWhenCategoryNotFoundById() {
-        Category found = categoryRepository.findById(999);
-        assertNull(found);
+    @DisplayName("Should update category successfully")
+    void testUpdateCategory() {
+        repository.add(category1);
+
+        Category updatedCategory = new Category(1L, "Updated Electronics", "Updated description");
+        repository.update(updatedCategory);
+
+        Category found = repository.findById(1L);
+        assertEquals("Updated Electronics", found.getName());
+        assertEquals("Updated description", found.getDescription());
     }
 
     @Test
-    void shouldFindCategoryByName() {
-        Category category = new Category("Home & Garden");
-        category.setId(1);
-        categoryRepository.add(category);
+    @DisplayName("Should throw exception when updating non-existent category")
+    void testUpdateNonExistentCategory() {
+        Category nonExistent = new Category(999L, "Non-existent", "Description");
 
-        Category found = categoryRepository.findByName("Home & Garden");
-        assertEquals(category, found);
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> repository.update(nonExistent));
+        assertEquals("Entity with ID 999 not found.", exception.getMessage());
     }
 
     @Test
-    void shouldFindCategoryByNameCaseInsensitive() {
-        Category category = new Category("Fashion");
-        category.setId(1);
-        categoryRepository.add(category);
-
-        Category found = categoryRepository.findByName("FASHION");
-        assertEquals(category, found);
+    @DisplayName("Should throw exception when updating null category")
+    void testUpdateNullCategory() {
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> repository.update(null));
+        assertEquals("Data to update cannot be null.", exception.getMessage());
     }
 
     @Test
-    void shouldCheckIfCategoryExists() {
-        Category category = new Category("Technology");
-        category.setId(5);
-        categoryRepository.add(category);
+    @DisplayName("Should remove category successfully")
+    void testRemoveCategory() {
+        repository.add(category1);
+        repository.add(category2);
 
-        assertTrue(categoryRepository.exists(5));
-        assertFalse(categoryRepository.exists(99));
+        repository.remove(1L);
+
+        assertEquals(1, repository.getSize(), "Size should be 1 after removal");
+        assertThrows(NotFoundException.class, () -> repository.findById(1L));
+        assertDoesNotThrow(() -> repository.findById(2L));
     }
 
     @Test
-    void shouldSortCategoriesByName() {
-        Category category1 = new Category("Zebra");
-        category1.setId(1);
-        Category category2 = new Category("Apple");
-        category2.setId(2);
-        Category category3 = new Category("Banana");
-        category3.setId(3);
-
-        categoryRepository.add(category1);
-        categoryRepository.add(category2);
-        categoryRepository.add(category3);
-
-        Category[] sorted = categoryRepository.sortByName().getResult();
-
-        assertEquals("Apple", sorted[0].getName());
-        assertEquals("Banana", sorted[1].getName());
-        assertEquals("Zebra", sorted[2].getName());
+    @DisplayName("Should throw exception when removing non-existent category")
+    void testRemoveNonExistentCategory() {
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> repository.remove(999L));
+        assertEquals("Entity with ID 999 not found.", exception.getMessage());
     }
 
     @Test
-    void shouldSortCategoriesByCreatedAt() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime earlier = now.minusHours(1);
-        LocalDateTime latest = now.minusMinutes(30);
+    @DisplayName("Should clear all categories")
+    void testClearCategories() {
+        repository.add(category1);
+        repository.add(category2);
+        repository.add(category3);
 
-        Category category1 = new Category("First");
-        category1.setId(1);
-        category1.setCreatedAt(now);
+        repository.clear();
 
-        Category category2 = new Category("Second");
-        category2.setId(2);
-        category2.setCreatedAt(earlier);
-
-        Category category3 = new Category("Third");
-        category3.setId(3);
-        category3.setCreatedAt(latest);
-
-        categoryRepository.add(category1);
-        categoryRepository.add(category2);
-        categoryRepository.add(category3);
-
-        Category[] sorted = categoryRepository.sortByCreatedAt().getResult();
-
-        assertEquals("Second", sorted[0].getName());
-        assertEquals("Third", sorted[1].getName());
-        assertEquals("First", sorted[2].getName());
+        assertEquals(0, repository.getSize(), "Size should be 0 after clear");
     }
 
     @Test
-    void shouldHandleEmptyRepository() {
-        assertEquals(0, categoryRepository.getSize());
-        assertNull(categoryRepository.findById(1));
-        assertNull(categoryRepository.findByName("Any"));
-        assertEquals(0, categoryRepository.query().getSize());
+    @DisplayName("Should find category by ID")
+    void testFindById() {
+        repository.add(category1);
+
+        Category found = repository.findById(1L);
+
+        assertNotNull(found);
+        assertEquals(category1.getId(), found.getId());
+        assertEquals(category1.getName(), found.getName());
     }
 
     @Test
-    void shouldClearRepository() {
-        Category category1 = new Category("Category1");
-        category1.setId(1);
-        Category category2 = new Category("Category2");
-        category2.setId(2);
-
-        categoryRepository.add(category1);
-        categoryRepository.add(category2);
-
-        assertEquals(2, categoryRepository.getSize());
-
-        categoryRepository.clear();
-
-        assertEquals(0, categoryRepository.getSize());
+    @DisplayName("Should throw exception when finding non-existent ID")
+    void testFindByNonExistentId() {
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> repository.findById(999L));
+        assertEquals("Entity with ID 999 not found.", exception.getMessage());
     }
 
     @Test
-    void shouldWorkWithQueryOperations() {
-        Category category1 = new Category("Electronics");
-        category1.setId(1);
-        Category category2 = new Category("Books");
-        category2.setId(2);
-        Category category3 = new Category("Electronic Gadgets");
-        category3.setId(3);
+    @DisplayName("Should find category by name")
+    void testFindByName() {
+        repository.add(category1);
 
-        categoryRepository.add(category1);
-        categoryRepository.add(category2);
-        categoryRepository.add(category3);
+        Category found = repository.findByName("Electronics");
 
-        Category[] filtered = categoryRepository.query()
-                .filter(c -> c.getName().toLowerCase().contains("electronic"))
-                .getResult();
+        assertNotNull(found);
+        assertEquals(category1.getName(), found.getName());
+    }
 
-        assertEquals(2, filtered.length);
+    @Test
+    @DisplayName("Should find category by name (case insensitive)")
+    void testFindByNameCaseInsensitive() {
+        repository.add(category1);
+
+        Category found = repository.findByName("electronics");
+
+        assertNotNull(found);
+        assertEquals(category1.getName(), found.getName());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when finding by null name")
+    void testFindByNullName() {
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> repository.findByName(null));
+        assertEquals("Name cannot be null or empty.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when finding by empty name")
+    void testFindByEmptyName() {
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> repository.findByName("   "));
+        assertEquals("Name cannot be null or empty.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should return all categories")
+    void testFindAll() {
+        repository.add(category1);
+        repository.add(category2);
+
+        Category[] all = repository.findAll();
+
+        assertEquals(2, all.length);
+        assertEquals(category1, all[0]);
+        assertEquals(category2, all[1]);
+    }
+
+    @Test
+    @DisplayName("Should check if category exists by ID")
+    void testExists() {
+        repository.add(category1);
+
+        assertTrue(repository.exists(1L), "Category should exist");
+        assertFalse(repository.exists(999L), "Category should not exist");
+    }
+
+    @Test
+    @DisplayName("Should check if category exists by entity")
+    void testExistsByEntity() {
+        repository.add(category1);
+
+        assertTrue(repository.exists(category1), "Category should exist");
+        assertFalse(repository.exists(category2), "Category should not exist");
+    }
+
+    @Test
+    @DisplayName("Should check for ID duplication")
+    void testIdDuplicated() {
+        repository.add(category1);
+
+        assertTrue(repository.idDuplicated(1L), "ID should be duplicated");
+        assertFalse(repository.idDuplicated(999L), "ID should not be duplicated");
+    }
+
+    @Test
+    @DisplayName("Should check if data is duplicated")
+    void testIsDuplicated() {
+        repository.add(category1);
+
+        assertTrue(repository.isDuplicated(category1), "Category should be duplicated");
+        assertFalse(repository.isDuplicated(category2), "Category should not be duplicated");
+        assertFalse(repository.isDuplicated(null), "Null should not be duplicated");
+    }
+
+    @Test
+    @DisplayName("Should sort by name in ascending order")
+    void testSortByNameAscending() {
+        repository.add(category3);
+        repository.add(category1);
+        repository.add(category2);
+
+        Query<Category> sorted = repository.sortByName();
+        Category[] result = sorted.getResult();
+
+        assertEquals("Books", result[0].getName());
+        assertEquals("Clothing", result[1].getName());
+        assertEquals("Electronics", result[2].getName());
+    }
+
+    @Test
+    @DisplayName("Should sort by name in descending order")
+    void testSortByNameDescending() {
+        repository.add(category3);
+        repository.add(category1);
+        repository.add(category2);
+
+        Query<Category> sorted = repository.sortByName(SortOrder.DESC);
+        Category[] result = sorted.getResult();
+
+        assertEquals("Electronics", result[0].getName());
+        assertEquals("Clothing", result[1].getName());
+        assertEquals("Books", result[2].getName());
+    }
+
+    @Test
+    @DisplayName("Should sort by created date in ascending order")
+    void testSortByCreatedAtAscending() {
+        repository.add(category1);
+        repository.add(category3);
+        repository.add(category2);
+
+        Query<Category> sorted = repository.sortByCreatedAt();
+        Category[] result = sorted.getResult();
+
+        assertEquals(category1, result[0]);
+        assertEquals(category2, result[1]);
+        assertEquals(category3, result[2]);
+    }
+
+    @Test
+    @DisplayName("Should sort by created date in descending order")
+    void testSortByCreatedAtDescending() {
+        repository.add(category1);
+        repository.add(category3);
+        repository.add(category2);
+
+        Query<Category> sorted = repository.sortByCreatedAt(SortOrder.DESC);
+        Category[] result = sorted.getResult();
+
+        assertEquals(category3, result[0]);
+        assertEquals(category2, result[1]);
+        assertEquals(category1, result[2]);
+    }
+
+    @Test
+    @DisplayName("Should check capacity management")
+    void testCapacityManagement() {
+        assertEquals(5, repository.getCapacity());
+
+        for (int i = 1; i <= 6; i++) {
+            repository.add(new Category((long) i, "Category" + i, "Description" + i));
+        }
+
+        assertEquals(6, repository.getSize());
+        assertTrue(repository.getCapacity() >= 6, "Capacity should be expanded");
+    }
+
+    @Test
+    @DisplayName("Should handle query operations")
+    void testQueryOperations() {
+        repository.add(category1);
+        repository.add(category2);
+        repository.add(category3);
+
+        Query<Category> query = repository.query();
+        assertNotNull(query);
+
+        Category found = query.find(c -> c.getName().equals("Books"));
+        assertEquals(category2, found);
+
+        Category[] filtered = query.filter(c -> c.getName().startsWith("C")).getResult();
+        assertEquals(1, filtered.length);
+        assertEquals(category3, filtered[0]);
     }
 }

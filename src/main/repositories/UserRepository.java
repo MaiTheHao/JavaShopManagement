@@ -1,5 +1,7 @@
 package main.repositories;
 
+import main.abstracts.repositories.Repository;
+import main.errors.BadRequestException;
 import main.models.User;
 
 public class UserRepository extends Repository<User> {
@@ -30,6 +32,16 @@ public class UserRepository extends Repository<User> {
 	}
 
 	public User findByEmail(String email) {
-		return this.query().find(e -> e.getEmail().equalsIgnoreCase(email));
+		if (email == null || email.isEmpty())
+			throw new BadRequestException("Email cannot be null or empty.");
+
+		return this.query().find(e -> e.getEmail().trim().equalsIgnoreCase(email));
+	}
+
+	public boolean existsByEmail(String email) {
+		if (email == null || email.isEmpty())
+			throw new BadRequestException("Email cannot be null or empty.");
+
+		return this.query().find(e -> e.getEmail().trim().equalsIgnoreCase(email)) != null;
 	}
 }

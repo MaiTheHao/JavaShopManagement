@@ -2,17 +2,21 @@ package main.models;
 
 import java.time.LocalDateTime;
 
+import main.errors.BadRequestException;
+
 public abstract class Entity {
-	protected int id;
+	protected Long id;
 	protected String name;
 	protected LocalDateTime createdAt;
 	protected LocalDateTime updatedAt;
 
-	public int getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Long id) {
+		if (id == null)
+			throw new BadRequestException("Id must be greater than 0");
 		this.id = id;
 	}
 
@@ -21,7 +25,8 @@ public abstract class Entity {
 	}
 
 	public void setName(String name) {
-		if(name == null || name.trim().isEmpty()) throw new IllegalArgumentException("Name must be not null");
+		if (name == null || name.trim().isEmpty())
+			throw new BadRequestException("Name must be not null");
 		this.name = name;
 	}
 
@@ -30,8 +35,10 @@ public abstract class Entity {
 	}
 
 	public void setCreatedAt(LocalDateTime createdAt) {
-		if(createdAt == null) throw new IllegalArgumentException("Created at must not be null");
-		if (createdAt.isAfter(LocalDateTime.now())) throw new IllegalArgumentException("Created at must be not in the future");
+		if (createdAt == null)
+			throw new BadRequestException("Created at must not be null");
+		if (createdAt.isAfter(LocalDateTime.now()))
+			throw new BadRequestException("Created at must be not in the future");
 		this.createdAt = createdAt;
 	}
 
@@ -40,8 +47,10 @@ public abstract class Entity {
 	}
 
 	public void setUpdatedAt(LocalDateTime updatedAt) {
-		if(updatedAt == null) throw new IllegalArgumentException("Updated at must not be null");
-		if (updatedAt.isAfter(LocalDateTime.now())) throw new IllegalArgumentException("Updated at must be not  in the future");
+		if (updatedAt == null)
+			throw new BadRequestException("Updated at must not be null");
+		if (updatedAt.isAfter(LocalDateTime.now()))
+			throw new BadRequestException("Updated at must be not  in the future");
 		this.updatedAt = updatedAt;
 	}
 }

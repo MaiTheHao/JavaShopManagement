@@ -2,8 +2,11 @@ package test.lib;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import main.lib.Query;
 import org.junit.jupiter.api.Test;
+
+import main.errors.BadRequestException;
+import main.utils.Query;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 
@@ -100,7 +103,7 @@ class QueryTest {
 	void shouldThrowExceptionWhenSkippingNegativeElements() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.skip(-1));
+		BadRequestException exception = assertThrows(BadRequestException.class, () -> query.skip(-1));
 		assertEquals("Skip count must be non-negative", exception.getMessage());
 	}
 
@@ -108,14 +111,14 @@ class QueryTest {
 	void shouldThrowExceptionWhenLimitIsNegative() {
 		Integer[] data = { 1, 2, 3 };
 		Query<Integer> query = Query.of(data);
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.limit(-5));
+		BadRequestException exception = assertThrows(BadRequestException.class, () -> query.limit(-5));
 		assertEquals("Limit must be non-negative", exception.getMessage());
 	}
 
 	@Test
 	void shouldThrowExceptionWhenSetSizeIsNegative() {
 		Query<Integer> query = new Query<>();
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> query.setSize(-1));
+		BadRequestException exception = assertThrows(BadRequestException.class, () -> query.setSize(-1));
 		assertEquals("Size must be greater than 0", exception.getMessage());
 	}
 

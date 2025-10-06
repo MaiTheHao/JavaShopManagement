@@ -1,5 +1,6 @@
 package test.models;
 
+import main.errors.BadRequestException;
 import main.models.Category;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,13 +13,22 @@ class CategoryTest {
 
     @BeforeEach
     void setUp() {
-        category = new Category("Food", "All food items");
+        category = new Category(1L, "Food", "All food items");
     }
 
     @Test
     void constructorShouldSetFieldsCorrectly() {
+        assertEquals(1, category.getId());
         assertEquals("Food", category.getName());
         assertEquals("All food items", category.getDescription());
+    }
+
+    @Test
+    void constructorWithoutDescriptionShouldSetEmptyDescription() {
+        Category categoryNoDesc = new Category(2L, "Drink");
+        assertEquals(2, categoryNoDesc.getId());
+        assertEquals("Drink", categoryNoDesc.getName());
+        assertEquals("", categoryNoDesc.getDescription());
     }
 
     @Test
@@ -29,9 +39,9 @@ class CategoryTest {
 
     @Test
     void setNameShouldThrowOnNullOrEmpty() {
-        assertThrows(IllegalArgumentException.class, () -> category.setName(null));
-        assertThrows(IllegalArgumentException.class, () -> category.setName(""));
-        assertThrows(IllegalArgumentException.class, () -> category.setName("   "));
+        assertThrows(BadRequestException.class, () -> category.setName(null));
+        assertThrows(BadRequestException.class, () -> category.setName(""));
+        assertThrows(BadRequestException.class, () -> category.setName("   "));
     }
 
     @Test
@@ -50,14 +60,19 @@ class CategoryTest {
 
     @Test
     void setIdShouldSetId() {
-        category.setId(7);
+        category.setId(7L);
         assertEquals(7, category.getId());
     }
 
     @Test
+    void setIdShouldThrowOnNull() {
+        assertThrows(BadRequestException.class, () -> category.setId(null));
+    }
+
+    @Test
     void setCreatedAtShouldThrowOnNullOrFuture() {
-        assertThrows(IllegalArgumentException.class, () -> category.setCreatedAt(null));
-        assertThrows(IllegalArgumentException.class, () -> category.setCreatedAt(LocalDateTime.now().plusDays(1)));
+        assertThrows(BadRequestException.class, () -> category.setCreatedAt(null));
+        assertThrows(BadRequestException.class, () -> category.setCreatedAt(LocalDateTime.now().plusDays(1)));
     }
 
     @Test
@@ -69,8 +84,8 @@ class CategoryTest {
 
     @Test
     void setUpdatedAtShouldThrowOnNullOrFuture() {
-        assertThrows(IllegalArgumentException.class, () -> category.setUpdatedAt(null));
-        assertThrows(IllegalArgumentException.class, () -> category.setUpdatedAt(LocalDateTime.now().plusDays(1)));
+        assertThrows(BadRequestException.class, () -> category.setUpdatedAt(null));
+        assertThrows(BadRequestException.class, () -> category.setUpdatedAt(LocalDateTime.now().plusDays(1)));
     }
 
     @Test

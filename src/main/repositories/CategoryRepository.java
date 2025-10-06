@@ -1,5 +1,6 @@
 package main.repositories;
 
+import main.abstracts.repositories.Repository;
 import main.models.Category;
 
 public class CategoryRepository extends Repository<Category> {

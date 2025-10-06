@@ -1,138 +1,91 @@
 package test.repositories;
 
-import static org.junit.jupiter.api.Assertions.*;
-import main.models.User;
 import main.repositories.UserRepository;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
+import main.models.User;
+import main.enumerations.Role;
+import main.errors.BadRequestException;
+import main.errors.NotFoundException;
+import org.junit.jupiter.api.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class UserRepositoryTest {
 
-    private UserRepository userRepository;
+    private UserRepository repo;
 
     @BeforeEach
     void setUp() {
-        userRepository = UserRepository.getInstance();
-        userRepository.clear();
-    }
-
-    @AfterEach
-    void tearDown() {
-        userRepository = null;
+        repo = UserRepository.getInstance(10);
+        repo.clear();
     }
 
     @Test
-    void shouldReturnSingletonInstance() {
-        UserRepository repo1 = UserRepository.getInstance();
-        UserRepository repo2 = UserRepository.getInstance();
-        assertSame(repo1, repo2);
+    void testAddAndFindByEmail() {
+        User user = new User(1L, "test@example.com", "pass012938012938210", "Test User", Role.USER);
+        repo.add(user);
+
+        User found = repo.findByEmail("test@example.com");
+        assertNotNull(found);
+        assertEquals("Test User", found.getName());
     }
 
     @Test
-    void shouldReturnSingletonInstanceWithCapacity() {
-        UserRepository repo1 = UserRepository.getInstance(100);
-        UserRepository repo2 = UserRepository.getInstance(200);
-        assertSame(repo1, repo2);
+    void testFindByEmailCaseInsensitive() {
+        User user = new User(2L, "user@domain.com", "pass012938012938210", "User2", Role.USER);
+        repo.add(user);
+
+        User found = repo.findByEmail("USER@DOMAIN.COM");
+        assertNotNull(found);
+        assertEquals(2L, found.getId());
     }
 
     @Test
-    void shouldFindUserByEmailCaseInsensitive() {
-        User user1 = new User("john@example.com", "John", "password");
-        User user2 = new User("jane@example.com", "Jane", "password");
-
-        userRepository.add(user1);
-        userRepository.add(user2);
-
-        User found = userRepository.findByEmail("JOHN@EXAMPLE.COM");
-        assertEquals(user1, found);
-        assertEquals("john@example.com", found.getEmail());
+    void testFindByEmailThrowsOnNullOrEmpty() {
+        assertThrows(BadRequestException.class, () -> repo.findByEmail(null));
+        assertThrows(BadRequestException.class, () -> repo.findByEmail(""));
     }
 
     @Test
-    void shouldReturnNullWhenUserNotFoundByEmail() {
-        User user = new User("john@example.com", "John", "password");
-        userRepository.add(user);
+    void testUpdate() {
+        User user = new User(3L, "update@domain.com", "pass012938012938210", "OldName", Role.USER);
+        repo.add(user);
 
-        User found = userRepository.findByEmail("notfound@example.com");
-        assertNull(found);
+        User updated = new User(3L, "update@domain.com", "pass012938012938210", "NewName", Role.USER);
+        repo.update(updated);
+
+        User found = repo.findById(3L);
+        assertEquals("NewName", found.getName());
     }
 
     @Test
-    void shouldFindUserByExactEmailMatch() {
-        User user = new User("test@example.com", "Test User", "password");
-        userRepository.add(user);
-
-        User found = userRepository.findByEmail("test@example.com");
-        assertEquals(user, found);
+    void testUpdateThrowsOnNotFound() {
+        User user = new User(99L, "notfound@domain.com", "pass012938012938210", "Name", Role.USER);
+        assertThrows(NotFoundException.class, () -> repo.update(user));
     }
 
     @Test
-    void shouldHandleEmptyRepositoryWhenFindingByEmail() {
-        User found = userRepository.findByEmail("any@example.com");
-        assertNull(found);
+    void testRemove() {
+        User user = new User(4L, "remove@domain.com", "pass012938012938210", "ToRemove", Role.USER);
+        repo.add(user);
+        repo.remove(4L);
+
+        assertThrows(NotFoundException.class, () -> repo.findById(4L));
     }
 
     @Test
-    void shouldFindFirstUserWhenMultipleUsersWithSameEmail() {
-        User user1 = new User("same@example.com", "User1", "password1");
-        User user2 = new User("same@example.com", "User2", "password2");
-
-        userRepository.add(user1);
-        userRepository.add(user2);
-
-        User found = userRepository.findByEmail("same@example.com");
-        assertEquals(user1, found);
+    void testClear() {
+        repo.add(new User(5L, "a@b.com", "pass012938012938210", "A", Role.USER));
+        repo.add(new User(6L, "b@c.com", "pass012938012938210", "B", Role.USER));
+        repo.clear();
+        assertEquals(0, repo.getSize());
     }
 
     @Test
-    void shouldHandleNullEmailInFindByEmail() {
-        User user = new User("test@example.com", "Test", "password");
-        userRepository.add(user);
-
-        User found = userRepository.findByEmail(null);
-        assertNull(found);
-    }
-
-    @Test
-    void shouldHandleEmptyStringEmailInFindByEmail() {
-        User user = new User("test@example.com", "Test", "password");
-        userRepository.add(user);
-
-        User found = userRepository.findByEmail("");
-        assertNull(found);
-    }
-
-    @Test
-    void shouldMaintainRepositoryStateAfterQuery() {
-        User user1 = new User("user1@example.com", "User1", "password");
-        User user2 = new User("user2@example.com", "User2", "password");
-
-        userRepository.add(user1);
-        userRepository.add(user2);
-
-        assertEquals(2, userRepository.getSize());
-
-        userRepository.findByEmail("user1@example.com");
-
-        assertEquals(2, userRepository.getSize());
-    }
-
-    @Test
-    void shouldWorkWithQueryOperations() {
-        User user1 = new User("admin@example.com", "Admin", "password");
-        User user2 = new User("user@example.com", "User", "password");
-        User user3 = new User("guest@example.com", "Guest", "password");
-
-        userRepository.add(user1);
-        userRepository.add(user2);
-        userRepository.add(user3);
-
-        User[] filtered = userRepository.query()
-                .filter(u -> u.getEmail().contains("user"))
-                .getResult();
-
-        assertEquals(1, filtered.length);
-        assertEquals(user2, filtered[0]);
+    void testCapacityIncrease() {
+        for (int i = 0; i < 15; i++) {
+            repo.add(new User((long) i, "u" + i + "@mail.com", "pass012938012938210", "User" + i, Role.USER));
+        }
+        assertTrue(repo.getCapacity() >= 15);
+        assertEquals(15, repo.getSize());
     }
 }

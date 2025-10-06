@@ -1,15 +1,28 @@
 package main.models;
 
+import java.time.LocalDateTime;
+
+import main.errors.BadRequestException;
+
 public class Product extends Entity {
 	private double price;
-	private int quantity;
-	private int categoryId;
+	private Integer quantity;
+	private Integer categoryId;
 	private String description;
 
-	public Product(String name, double price, int quantity) {
+	public Product(Long id, String name, double price, Integer quantity) {
+		this(id, name, price, quantity, null, "");
+	}
+
+	public Product(Long id, String name, double price, Integer quantity, Integer categoryId, String description) {
+		this.setId(id);
 		this.setName(name);
 		this.setPrice(price);
 		this.setQuantity(quantity);
+		this.setCategoryId(categoryId);
+		this.setDescription(description);
+		this.setCreatedAt(LocalDateTime.now());
+		this.setUpdatedAt(LocalDateTime.now());
 	}
 
 	public double getPrice() {
@@ -17,25 +30,27 @@ public class Product extends Entity {
 	}
 
 	public void setPrice(double price) {
-		if (price < 0) throw new IllegalArgumentException("Price must be greater than or equal to 0");
-		
+		if (price < 0)
+			throw new BadRequestException("Price must be greater than or equal to 0");
+
 		this.price = price;
 	}
 
-	public int getQuantity() {
+	public Integer getQuantity() {
 		return quantity;
 	}
 
-	public void setQuantity(int quantity) {
-		if (quantity < 0) throw new IllegalArgumentException("Quantity must be greater than or equal to 0");
+	public void setQuantity(Integer quantity) {
+		if (quantity == null || quantity < 0)
+			throw new BadRequestException("Quantity must be greater than or equal to 0");
 		this.quantity = quantity;
 	}
 
-	public int getCategoryId() {
+	public Integer getCategoryId() {
 		return categoryId;
 	}
 
-	public void setCategoryId(int categoryId) {
+	public void setCategoryId(Integer categoryId) {
 		this.categoryId = categoryId;
 	}
 
@@ -47,16 +62,24 @@ public class Product extends Entity {
 		this.description = description;
 	}
 
-	public void inceaseQuantity(int amount) {
-		if (amount > 0) quantity += amount;
+	public void inceaseQuantity(Integer amount) {
+		if (amount > 0)
+			quantity += amount;
 	}
 
-	public void decreaseQuantity(int amount) {
-		 if (amount <= 0) return;
-		 this.quantity = Math.max(0, this.quantity - amount);
+	public void decreaseQuantity(Integer amount) {
+		if (amount <= 0)
+			return;
+		this.quantity = Math.max(0, this.quantity - amount);
 	}
 
 	public boolean isOutOfStock() {
 		return quantity <= 0;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("| %-25d | %-20s | %-10.2f | %-8d |",
+				getId(), getName(), getPrice(), getQuantity());
 	}
 }

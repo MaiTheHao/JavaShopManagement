@@ -1,263 +1,384 @@
 package test.repositories;
 
-import static org.junit.jupiter.api.Assertions.*;
-import main.models.Product;
 import main.repositories.ProductRepository;
+import main.models.Product;
 import main.enumerations.SortOrder;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
+import main.errors.BadRequestException;
+import main.errors.NotFoundException;
+import main.utils.Query;
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDateTime;
 
-class ProductRepositoryTest {
-
-    private ProductRepository productRepository;
+public class ProductRepositoryTest {
+    private ProductRepository repository;
+    private Product product1;
+    private Product product2;
+    private Product product3;
 
     @BeforeEach
     void setUp() {
-        productRepository = ProductRepository.getInstance();
-        productRepository.clear();
+        try {
+            java.lang.reflect.Field instanceField = ProductRepository.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+        }
+
+        repository = ProductRepository.getInstance();
+
+        product1 = new Product(1L, "Laptop", 999.99, 10);
+        product1.setCreatedAt(LocalDateTime.now().minusDays(3));
+
+        product2 = new Product(2L, "Mouse", 25.50, 50);
+        product2.setCreatedAt(LocalDateTime.now().minusDays(2));
+
+        product3 = new Product(3L, "Keyboard", 75.00, 5);
+        product3.setCreatedAt(LocalDateTime.now().minusDays(1));
     }
 
     @AfterEach
     void tearDown() {
-        productRepository = null;
+        if (repository != null) {
+            repository.clear();
+        }
     }
 
     @Test
-    void shouldReturnSingletonInstance() {
+    void testSingletonInstance() {
         ProductRepository repo1 = ProductRepository.getInstance();
         ProductRepository repo2 = ProductRepository.getInstance();
-        assertSame(repo1, repo2);
+        assertSame(repo1, repo2, "Should return the same instance");
     }
 
     @Test
-    void shouldReturnSingletonInstanceWithCapacity() {
-        ProductRepository repo1 = ProductRepository.getInstance(100);
-        ProductRepository repo2 = ProductRepository.getInstance(200);
-        assertSame(repo1, repo2);
+    void testAdd() {
+        repository.add(product1);
+        assertEquals(1, repository.getSize());
+        assertEquals(product1, repository.findById(1L));
     }
 
     @Test
-    void shouldAddProductSuccessfully() {
-        Product product = new Product("Laptop", 1500.0, 10);
-        product.setId(1);
-
-        productRepository.add(product);
-
-        assertEquals(1, productRepository.getSize());
-        assertEquals(product, productRepository.findById(1));
+    void testAddNull() {
+        assertThrows(BadRequestException.class, () -> repository.add(null));
     }
 
     @Test
-    void shouldUpdateProductSuccessfully() {
-        Product product = new Product("Phone", 800.0, 20);
-        product.setId(1);
-        productRepository.add(product);
+    void testAddMultipleProducts() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
 
-        Product updatedProduct = new Product("Updated Phone", 900.0, 25);
-        updatedProduct.setId(1);
-
-        productRepository.update(updatedProduct);
-
-        Product found = productRepository.findById(1);
-        assertEquals("Updated Phone", found.getName());
-        assertEquals(900.0, found.getPrice());
-        assertEquals(25, found.getQuantity());
+        assertEquals(3, repository.getSize());
+        assertEquals(product1, repository.findById(1L));
+        assertEquals(product2, repository.findById(2L));
+        assertEquals(product3, repository.findById(3L));
     }
 
     @Test
-    void shouldRemoveProductSuccessfully() {
-        Product product1 = new Product("Product1", 100.0, 5);
-        product1.setId(1);
-        Product product2 = new Product("Product2", 200.0, 10);
-        product2.setId(2);
+    void testUpdate() {
+        repository.add(product1);
 
-        productRepository.add(product1);
-        productRepository.add(product2);
+        Product updatedProduct = new Product(1L, "Updated Laptop", 1199.99, 8);
+        repository.update(updatedProduct);
 
-        productRepository.remove(1);
-
-        assertEquals(1, productRepository.getSize());
-        assertNull(productRepository.findById(1));
-        assertNotNull(productRepository.findById(2));
+        Product found = repository.findById(1L);
+        assertEquals("Updated Laptop", found.getName());
+        assertEquals(1199.99, found.getPrice());
+        assertEquals(8, found.getQuantity());
     }
 
     @Test
-    void shouldFindProductById() {
-        Product product = new Product("Tablet", 500.0, 15);
-        product.setId(5);
-        productRepository.add(product);
-
-        Product found = productRepository.findById(5);
-        assertEquals(product, found);
+    void testUpdateNonExistent() {
+        Product nonExistent = new Product(999L, "Non-existent", 100.0, 1);
+        assertThrows(NotFoundException.class, () -> repository.update(nonExistent));
     }
 
     @Test
-    void shouldFindProductByName() {
-        Product product = new Product("Gaming Mouse", 50.0, 30);
-        product.setId(1);
-        productRepository.add(product);
-
-        Product found = productRepository.findByName("Gaming Mouse");
-        assertEquals(product, found);
+    void testUpdateNull() {
+        assertThrows(BadRequestException.class, () -> repository.update(null));
     }
 
     @Test
-    void shouldSortProductsByPriceAscending() {
-        Product product1 = new Product("Expensive", 1000.0, 1);
-        product1.setId(1);
-        Product product2 = new Product("Cheap", 10.0, 50);
-        product2.setId(2);
-        Product product3 = new Product("Medium", 100.0, 20);
-        product3.setId(3);
+    void testRemove() {
+        repository.add(product1);
+        repository.add(product2);
 
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] sorted = productRepository.sortByPrice().getResult();
-
-        assertEquals(10.0, sorted[0].getPrice());
-        assertEquals(100.0, sorted[1].getPrice());
-        assertEquals(1000.0, sorted[2].getPrice());
+        repository.remove(1L);
+        assertEquals(1, repository.getSize());
+        assertThrows(NotFoundException.class, () -> repository.findById(1L));
+        assertEquals(product2, repository.findById(2L));
     }
 
     @Test
-    void shouldSortProductsByPriceDescending() {
-        Product product1 = new Product("Cheap", 10.0, 50);
-        product1.setId(1);
-        Product product2 = new Product("Expensive", 1000.0, 1);
-        product2.setId(2);
-        Product product3 = new Product("Medium", 100.0, 20);
-        product3.setId(3);
-
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] sorted = productRepository.sortByPrice(SortOrder.DESC).getResult();
-
-        assertEquals(1000.0, sorted[0].getPrice());
-        assertEquals(100.0, sorted[1].getPrice());
-        assertEquals(10.0, sorted[2].getPrice());
+    void testRemoveNonExistent() {
+        assertThrows(NotFoundException.class, () -> repository.remove(999L));
     }
 
     @Test
-    void shouldSortProductsByQuantityAscending() {
-        Product product1 = new Product("High Stock", 50.0, 100);
-        product1.setId(1);
-        Product product2 = new Product("Low Stock", 75.0, 5);
-        product2.setId(2);
-        Product product3 = new Product("Medium Stock", 60.0, 25);
-        product3.setId(3);
+    void testClear() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
 
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] sorted = productRepository.sortByQuantity().getResult();
-
-        assertEquals(5, sorted[0].getQuantity());
-        assertEquals(25, sorted[1].getQuantity());
-        assertEquals(100, sorted[2].getQuantity());
+        repository.clear();
+        assertEquals(0, repository.getSize());
     }
 
     @Test
-    void shouldSortProductsByQuantityDescending() {
-        Product product1 = new Product("Low Stock", 75.0, 5);
-        product1.setId(1);
-        Product product2 = new Product("High Stock", 50.0, 100);
-        product2.setId(2);
-        Product product3 = new Product("Medium Stock", 60.0, 25);
-        product3.setId(3);
-
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] sorted = productRepository.sortByQuantity(SortOrder.DESC).getResult();
-
-        assertEquals(100, sorted[0].getQuantity());
-        assertEquals(25, sorted[1].getQuantity());
-        assertEquals(5, sorted[2].getQuantity());
+    void testFindById() {
+        repository.add(product1);
+        Product found = repository.findById(1L);
+        assertEquals(product1, found);
     }
 
     @Test
-    void shouldSortProductsByName() {
-        Product product1 = new Product("Zebra Product", 10.0, 5);
-        product1.setId(1);
-        Product product2 = new Product("Alpha Product", 20.0, 10);
-        product2.setId(2);
-        Product product3 = new Product("Beta Product", 15.0, 8);
-        product3.setId(3);
-
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] sorted = productRepository.sortByName().getResult();
-
-        assertEquals("Alpha Product", sorted[0].getName());
-        assertEquals("Beta Product", sorted[1].getName());
-        assertEquals("Zebra Product", sorted[2].getName());
+    void testFindByIdNonExistent() {
+        assertThrows(NotFoundException.class, () -> repository.findById(999L));
     }
 
     @Test
-    void shouldCheckIfProductExists() {
-        Product product = new Product("Test Product", 25.0, 12);
-        product.setId(10);
-        productRepository.add(product);
-
-        assertTrue(productRepository.exists(10));
-        assertFalse(productRepository.exists(99));
+    void testFindByName() {
+        repository.add(product1);
+        Product found = repository.findByName("Laptop");
+        assertEquals(product1, found);
     }
 
     @Test
-    void shouldHandleEmptyRepository() {
-        assertEquals(0, productRepository.getSize());
-        assertNull(productRepository.findById(1));
-        assertNull(productRepository.findByName("Any"));
-        assertEquals(0, productRepository.query().getSize());
+    void testFindByNameCaseInsensitive() {
+        repository.add(product1);
+        Product found = repository.findByName("laptop");
+        assertEquals(product1, found);
     }
 
     @Test
-    void shouldWorkWithQueryOperations() {
-        Product product1 = new Product("Gaming Laptop", 1200.0, 3);
-        product1.setId(1);
-        Product product2 = new Product("Office Laptop", 800.0, 10);
-        product2.setId(2);
-        Product product3 = new Product("Gaming Mouse", 50.0, 25);
-        product3.setId(3);
-
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] filtered = productRepository.query()
-                .filter(p -> p.getName().toLowerCase().contains("gaming"))
-                .getResult();
-
-        assertEquals(2, filtered.length);
+    void testFindByNameNonExistent() {
+        assertThrows(NotFoundException.class, () -> repository.findByName("NonExistent"));
     }
 
     @Test
-    void shouldFilterProductsByPriceRange() {
-        Product product1 = new Product("Cheap Item", 5.0, 100);
-        product1.setId(1);
-        Product product2 = new Product("Mid Range", 50.0, 20);
-        product2.setId(2);
-        Product product3 = new Product("Expensive Item", 500.0, 2);
-        product3.setId(3);
-
-        productRepository.add(product1);
-        productRepository.add(product2);
-        productRepository.add(product3);
-
-        Product[] filtered = productRepository.query()
-                .filter(p -> p.getPrice() >= 10.0 && p.getPrice() <= 100.0)
-                .getResult();
-
-        assertEquals(1, filtered.length);
-        assertEquals("Mid Range", filtered[0].getName());
+    void testFindByNameNull() {
+        assertThrows(BadRequestException.class, () -> repository.findByName(null));
     }
+
+    @Test
+    void testFindByNameEmpty() {
+        assertThrows(BadRequestException.class, () -> repository.findByName(""));
+    }
+
+    @Test
+    void testFindAll() {
+        repository.add(product1);
+        repository.add(product2);
+
+        Product[] all = repository.findAll();
+        assertEquals(2, all.length);
+        assertEquals(product1, all[0]);
+        assertEquals(product2, all[1]);
+    }
+
+    @Test
+    void testFindAllEmpty() {
+        Product[] all = repository.findAll();
+        assertEquals(0, all.length);
+    }
+
+    @Test
+    void testExists() {
+        repository.add(product1);
+        assertTrue(repository.exists(1L));
+        assertFalse(repository.exists(999L));
+    }
+
+    @Test
+    void testExistsEntity() {
+        repository.add(product1);
+        assertTrue(repository.exists(product1));
+        assertFalse(repository.exists(product2));
+    }
+
+    @Test
+    void testIsDuplicated() {
+        repository.add(product1);
+        assertTrue(repository.isDuplicated(product1));
+        assertFalse(repository.isDuplicated(product2));
+        assertFalse(repository.isDuplicated(null));
+    }
+
+    @Test
+    void testSortByPriceAscending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByPrice();
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product2, result[0]);
+        assertEquals(product3, result[1]);
+        assertEquals(product1, result[2]);
+    }
+
+    @Test
+    void testSortByPriceDescending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByPrice(SortOrder.DESC);
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product1, result[0]);
+        assertEquals(product3, result[1]);
+        assertEquals(product2, result[2]);
+    }
+
+    @Test
+    void testSortByPriceWithBaseQuery() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> base = repository.query().filter(p -> p.getPrice() > 30);
+        Query<Product> sorted = repository.sortByPrice(base);
+        Product[] result = sorted.getResult();
+
+        assertEquals(2, result.length);
+        assertEquals(product3, result[0]);
+        assertEquals(product1, result[1]);
+    }
+
+    @Test
+    void testSortByQuantityAscending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByQuantity();
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product3, result[0]);
+        assertEquals(product1, result[1]);
+        assertEquals(product2, result[2]);
+    }
+
+    @Test
+    void testSortByQuantityDescending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByQuantity(SortOrder.DESC);
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product2, result[0]);
+        assertEquals(product1, result[1]);
+        assertEquals(product3, result[2]);
+    }
+
+    @Test
+    void testSortByQuantityWithBaseQuery() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> base = repository.query().filter(p -> p.getQuantity() >= 10);
+        Query<Product> sorted = repository.sortByQuantity(base, SortOrder.DESC);
+        Product[] result = sorted.getResult();
+
+        assertEquals(2, result.length);
+        assertEquals(product2, result[0]);
+        assertEquals(product1, result[1]);
+    }
+
+    @Test
+    void testSortByNameAscending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByName();
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product3, result[0]);
+        assertEquals(product1, result[1]);
+        assertEquals(product2, result[2]);
+    }
+
+    @Test
+    void testSortByCreatedAtAscending() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> sorted = repository.sortByCreatedAt();
+        Product[] result = sorted.getResult();
+
+        assertEquals(3, result.length);
+        assertEquals(product1, result[0]);
+        assertEquals(product2, result[1]);
+        assertEquals(product3, result[2]);
+    }
+
+    @Test
+    void testQuery() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> query = repository.query();
+        assertEquals(3, query.getSize());
+    }
+
+    @Test
+    void testQueryFilter() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> filtered = repository.query().filter(p -> p.getPrice() > 50);
+        Product[] result = filtered.getResult();
+
+        assertEquals(2, result.length);
+        assertTrue(result[0].getPrice() > 50);
+        assertTrue(result[1].getPrice() > 50);
+    }
+
+    @Test
+    void testQueryPagination() {
+        repository.add(product1);
+        repository.add(product2);
+        repository.add(product3);
+
+        Query<Product> page = repository.query().paginate(1, 2);
+        assertEquals(2, page.getSize());
+
+        Query<Product> page2 = repository.query().paginate(2, 2);
+        assertEquals(1, page2.getSize());
+    }
+
+    @Test
+    void testEmptyRepository() {
+        assertEquals(0, repository.getSize());
+        Product[] all = repository.findAll();
+        assertEquals(0, all.length);
+    }
+
+    @Test
+    void testSortEmptyRepository() {
+        Query<Product> sorted = repository.sortByPrice();
+        assertEquals(0, sorted.getSize());
+    }
+
+    @Test
+    void testQueryEmptyRepository() {
+        Query<Product> query = repository.query();
+        assertEquals(0, query.getSize());
+    }
+
 }
