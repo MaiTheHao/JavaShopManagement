@@ -2,7 +2,6 @@ package main.services;
 
 import main.interfaces.services.IAuthService;
 import main.interfaces.services.ISessionService;
-import main.enumerations.Role;
 import main.models.User;
 import main.repositories.UserRepository;
 import main.errors.AppException;
